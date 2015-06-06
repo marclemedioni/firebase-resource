@@ -1,6 +1,7 @@
 angular.module('firebaseResource', []).
 
-factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $filter, $q, firebase) {
+factory('firebaseResource', ['$injector', '$rootScope', '$log', '$timeout', '$filter', '$q', 'firebase',
+    function($injector, $rootScope, $log, $timeout, $filter, $q, firebase) {
 
 
   $rootScope.safeApply = function(fn) {
@@ -144,7 +145,7 @@ factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $fil
           $log.info('child_added');
 
           if (opts.parent) {
-            firebase.child(Resource.getPath() + "/" + snapshot.name()).once('value', function(snap) {
+            firebase.child(Resource.getPath() + "/" + snapshot.key()).once('value', function(snap) {
               if (snap.val()) {
                 var resource = updateResource(snap);
                 resource.init();
@@ -184,7 +185,7 @@ factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $fil
     }
 
     function removeResource(snapshot) {
-      var name = snapshot.name ? snapshot.name() : snapshot.id;
+      var name = snapshot.name ? snapshot.key() : snapshot.id;
       if (map[name]) {
         var index = list.indexOf(map[name]);
         list.splice(index, 1);
@@ -193,7 +194,7 @@ factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $fil
     }
 
     function updateResource(snapshot) {
-      var name = snapshot.name();
+      var name = snapshot.key();
       var data = snapshot.val();
       if (data) {
         if (map[name]) {
@@ -264,7 +265,7 @@ factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $fil
 
 
     Resource.getName = function() {
-      return resourceRef.name();
+      return resourceRef.key();
     }
 
     Resource.getPath = function() {
@@ -346,7 +347,7 @@ factory('firebaseResource', function($injector, $rootScope, $log, $timeout, $fil
           ref = this.id ? resourceRef.child(this.id) : resourceRef.push();
 
       if (!this.id) {
-        this.id = ref.name();
+        this.id = ref.key();
         setAssociations(this);
         newResource = true;
       }
