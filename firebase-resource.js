@@ -1,7 +1,9 @@
 angular.module('firebaseResource', []).
 
-factory('firebaseResource', ['$injector', '$rootScope', '$log', '$timeout', '$filter', '$q', 'firebase',
-    function($injector, $rootScope, $log, $timeout, $filter, $q, firebase) {
+factory('firebaseResource', firebaseResource);
+
+firebaseResource.$inject = ['$injector', '$rootScope', '$log', '$timeout', '$filter', '$q', 'firebase'];
+function firebaseResource($injector, $rootScope, $log, $timeout, $filter, $q, firebase) {
 
 
   $rootScope.safeApply = function(fn) {
@@ -42,61 +44,61 @@ factory('firebaseResource', ['$injector', '$rootScope', '$log', '$timeout', '$fi
     /***** Private Methods *****/
 
     function setAssociations(self) {
-        var _this = self;
-        angular.forEach(options.hasMany, function(model) {
-          model = $injector.get(model);
-          var parent_path = Resource.getPath() + "/" + _this.id;
-          var parent_rels_path = Resource.getPath() + "/" + _this.id + "/rels/" + model.getName() + "/";
-          if (parent_path && !_this[model.getName()]) {
-            _this["_" + model.getName()] = [];
+      var _this = self;
+      angular.forEach(options.hasMany, function(model) {
+        model = $injector.get(model);
+        var parent_path = Resource.getPath() + "/" + _this.id;
+        var parent_rels_path = Resource.getPath() + "/" + _this.id + "/rels/" + model.getName() + "/";
+        if (parent_path && !_this[model.getName()]) {
+          _this["_" + model.getName()] = [];
 
-            _this[model.getName()] = function() {
-              return {
-                query: function(opts, callback) {
-                  var opts = opts ? opts : {};
-                  opts.path = parent_rels_path;
-                  opts.parent = _this;
-                  return model.query(opts, callback);
-                },
-                all: function(opts) {
-                  var opts = opts ? opts : {};
-                  opts.parent = _this;
-                  return model.all(opts);
-                },
-                new: function(data) {
-                  var data = data ? data : {}
-                  data["_" + Resource.getName() + "_parent_id"] = _this.id;
-                  data._parent_path = parent_path;
-                  data._parent_rels_path = parent_rels_path;
-                  return new model(data);
-                },
-                add: function(obj) {
-                  var deferred = $q.defer();
-                  if (!obj._parent_rels_path) {
-                    firebase.child(parent_rels_path + obj.id).once('value', function(s) {
-                      if (s.val()) {
-                        deferred.resolve(_this);
-                      } else {
-                        firebase.child(parent_rels_path).once('value', function(parentRels) {
-                          var priority = parentRels.val() ? Object.keys(parentRels.val()).length : 1;
-                          firebase.child(parent_rels_path + obj.id).setWithPriority(true, priority, function(error) {
-                            if (error) {
-                              $log.info('something went wrong: ' + error);
-                            } else {
-                               deferred.resolve(_this);
-                               $rootScope.safeApply();
-                            }
-                          });
+          _this[model.getName()] = function() {
+            return {
+              query: function(opts, callback) {
+                var opts = opts ? opts : {};
+                opts.path = parent_rels_path;
+                opts.parent = _this;
+                return model.query(opts, callback);
+              },
+              all: function(opts) {
+                var opts = opts ? opts : {};
+                opts.parent = _this;
+                return model.all(opts);
+              },
+              new: function(data) {
+                var data = data ? data : {}
+                data["_" + Resource.getName() + "_parent_id"] = _this.id;
+                data._parent_path = parent_path;
+                data._parent_rels_path = parent_rels_path;
+                return new model(data);
+              },
+              add: function(obj) {
+                var deferred = $q.defer();
+                if (!obj._parent_rels_path) {
+                  firebase.child(parent_rels_path + obj.id).once('value', function(s) {
+                    if (s.val()) {
+                      deferred.resolve(_this);
+                    } else {
+                      firebase.child(parent_rels_path).once('value', function(parentRels) {
+                        var priority = parentRels.val() ? Object.keys(parentRels.val()).length : 1;
+                        firebase.child(parent_rels_path + obj.id).setWithPriority(true, priority, function(error) {
+                          if (error) {
+                            $log.info('something went wrong: ' + error);
+                          } else {
+                            deferred.resolve(_this);
+                            $rootScope.safeApply();
+                          }
                         });
-                      }
-                    })
-                  }
-                  return deferred.promise;
+                      });
+                    }
+                  })
                 }
-              };
+                return deferred.promise;
+              }
             };
           };
-        });
+        };
+      });
     }
 
     function ensureRels(obj, relName) {
@@ -341,10 +343,10 @@ factory('firebaseResource', ['$injector', '$rootScope', '$log', '$timeout', '$fi
       timestamp(this);
 
       var deferred = $q.defer(),
-          newResource = false,
-          _this = this,
-          toSave = getSaveableAttrs(this),
-          ref = this.id ? resourceRef.child(this.id) : resourceRef.push();
+        newResource = false,
+        _this = this,
+        toSave = getSaveableAttrs(this),
+        ref = this.id ? resourceRef.child(this.id) : resourceRef.push();
 
       if (!this.id) {
         this.id = ref.key();
@@ -401,5 +403,4 @@ factory('firebaseResource', ['$injector', '$rootScope', '$log', '$timeout', '$fi
   }
 
   return firebaseResourceFactory;
-
-});
+}
